@@ -1,0 +1,123 @@
+from bs4 import BeautifulSoup
+import requests
+import time
+import telebot
+
+title_izru = ['123']
+title_lenta = ['123']
+
+def tgposting(posting,img,zagolov):
+    data = {"API_TOKEN": "1881872122:AAEET5GXALBvgY3-V3wMNgtUGSQocKVdvBQ",
+            "ID": "@fakeneews"
+            }
+    bot = telebot.TeleBot(data["API_TOKEN"])
+    bot.send_message(data["ID"],zagolov + f'[{" "}]({img})' + '\n\n' + ''.join(posting),parse_mode='Markdown')
+
+def povtor_iz(urls):
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36'
+    }
+    res = requests.get(urls, headers=headers)
+    soup = BeautifulSoup(res.text, 'lxml')
+    posting = []
+
+    zagolov = soup.find('h1', class_='m-t-10').get_text(strip=True)
+    post_text = soup.find('div', class_='text-article__inside').find('div')
+    img_post = soup.find('div', class_='big_photo__img').find('div').find('img')['data-src']
+    img = 'https:' + img_post
+
+    if len(post_text.find_all('p')[-1].get_text(strip=True)) <= 21:
+        sput()
+    if img_post[54:68] == 'default_images':
+        time.sleep(15)
+        return povtor_iz(urls)
+    else:
+        title_izru.append(urls)
+        del title_izru[0]
+
+        for i in range(0, str(post_text).count('<p>')):
+            posting.append(post_text.find_all('p')[i].text + '\n\n')
+        tgposting(posting, img, zagolov)
+        lentaru()
+
+def izru():
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36'
+        }
+        url = 'https://iz.ru/feed'
+        res = requests.get(url, headers=headers)
+        soup = BeautifulSoup(res.text, 'lxml')
+
+        posting = []
+
+        post_url = soup.find('div',class_='lenta_news__day').find('div').find('a').get('href')
+        urls = 'https://iz.ru' + post_url
+
+        res_post_izru = requests.get(urls, headers=headers)
+        soup = BeautifulSoup(res_post_izru.text, 'lxml')
+
+        zagolov = soup.find('h1', class_='m-t-10').get_text(strip=True)
+        post_text = soup.find('div', class_='text-article__inside').find('div')
+        image_post = soup.find('div', class_='big_photo__img').find('div').find('img')['data-src']
+        img = 'https:' + image_post
+
+        if len(post_text.find_all('p')[-1].get_text(strip=True)) <= 21:
+            sput()
+        if image_post[54:68] == 'default_images':
+            povtor_iz(urls)
+        else:
+            if title_izru[-1] != urls and str(post_text).count('<p>') > 0:
+                title_izru.append(urls)
+                del title_izru[0]
+
+                for i in range(0, str(post_text).count('<p>')):
+                    posting.append(post_text.find_all('p')[i].text + '\n\n')
+                tgposting(posting, img, zagolov)
+                sput()
+            else:
+                sput()
+    except Exception:
+        time.sleep(5)
+        return izru()
+def lentaru():
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36'
+        }
+        url = 'https://lenta.ru/parts/news/'
+        res = requests.get(url, headers=headers)
+        soup = BeautifulSoup(res.text, 'lxml')
+
+        posting =[]
+
+        post_url = soup.find('div',class_='titles').find('h3').find('a').get('href')
+        urls = 'https://lenta.ru' + post_url
+
+        res_post_lenta = requests.get(urls, headers=headers)
+        soup = BeautifulSoup(res_post_lenta.text, 'lxml')
+
+        try:
+            zagolov = soup.find('h1', class_='b-topic__title').get_text(strip=True)
+            post_text = soup.find('div', class_='js-topic__text')
+            img = soup.find('img', class_='g-picture').get('src')
+            if title_lenta[-1] != urls and str(post_text).count('</p>') > 0:
+                title_lenta.append(urls)
+                del title_lenta[0]
+
+                for i in range(0, str(post_text).count('</p>')):
+                    posting.append(post_text.find_all('p')[i].text + '\n\n')
+                tgposting(posting, img,zagolov)
+            izru()
+
+        except Exception:
+            izru()
+    except Exception:
+        time.sleep(5)
+        return lentaru()
+
+def sput():
+    time.sleep(30)
+    lentaru()
+
+lentaru()
